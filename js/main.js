@@ -32,14 +32,102 @@ var Fifteen = (function(window, document, unundefined) {
             return o;
         },
 
-        isCompleted: function(){
+        isCompleted: function() {
             for(var i = 0; i < cells.length - 1; i++) {
-                if (cells[i] != i+1 ) return false;
+                if (cells[i] != i + 1 ) return false;
             }
             return true;
         },
 
-        haveSolution: function(){
+                
+        getOneStepSolution: function(start, goal) {
+            var closedSet = [],
+                openSet = [new Point(start, 0, cost(start, goal), null)],
+                pathMap = [];
+            
+            while (openSet.length != 0) {
+                var index =  getMinCost(openSet);
+                var parentPoint = openSet[index];
+                var tentativeIsBetter; 
+                closedSet.push(parentPoint);
+                openSet.splice([index], 1);
+                var points = neighborPoints(parentPoint);
+                for (var i = 0; i < points.length; i++) {
+                    if (pointByPos(closedSet, points[i])) continue;
+                        var tentativeGScore = parentPoint.g + 1;
+                    if (!pointByPos(openSet, points[i])) {
+                        //console.log(new Point(points[i], parentPoint.g + 1, cost(points[i] ,goal), parentPoint.pos))
+                        openSet.push(new Point(points[i], parentPoint.g + 1, cost(points[i] ,goal), parentPoint.pos)); 
+                        tentativeIsBetter = true;
+                    } else {
+                       if (tentativeGScore < openSet(index).g) {
+                            tentativeIsBetter = true;
+                       } else {
+                           tentativeIsBetter = false;
+                       }
+                    }
+                 }
+             }
+
+
+            //if (tentativeIsBetter) {
+            //    var index = pointByPos(openSet, points[i]);
+            //    openSet[index].g = parentPoint.pos + 1;
+            //    openSet[index].h = cost(point[i], goal);
+            //    openSet[index].f = openSet[index].g + openSet[index].h;
+            //}
+            //console.log(openSet);
+            
+           
+            
+            function pointByPos(points, pos) {
+                for(var i = 0; i < points.length; i++) {
+                    if(points[i].pos == pos) return i;
+                }
+                return false;
+            }
+            
+            function neighborPoints(point) {
+                var points = [];
+                if (point.pos + rowLength <= cells.length - 1) points.push(point.pos + rowLength);
+                if (point.pos + 1 <= cells.length - 1) points.push(point.pos + 1);
+                if (point.pos - rowLength >= 0) points.push(point.pos - rowLength);
+                if (point.pos - 1 >= 0) points.push(point.pos - 1);
+                return points;
+            }
+
+            function getMinCost(points) {
+                var tmp = [],
+                    min = Infinity,
+                    index = null;
+
+                for (var i = 0; i < points.length; i++) {
+                    if (points[i].f < min) {
+                        min = points[i].f   
+                        index = i;
+                    }
+                }
+                return index;
+            }
+
+            function Point(pos ,g, h, cameFrom){
+                return {
+                    cameForm: cameFrom,
+                    pos: pos,
+                    g: g,
+                    h: h,
+                    f: g + h
+                }
+            }
+
+            function cost(start, goal) {
+                var cost = 0;
+                cost = Math.abs(start - goal);
+                return cost;
+            }
+        },
+
+        haveSolution: function() {
             var disorder = 0;
             for(var i = 0; i < cells.length-1; i++) {
                 for (var j = i - 1; j >= 0; j--) {
@@ -55,7 +143,7 @@ var Fifteen = (function(window, document, unundefined) {
             cells[cellB] = t;
         },
 
-        getZeroPosition: function (){
+        getZeroPosition: function () {
             for(var i = 0; i < cells.length; i++  ) {
                 if (cells[i] == 0) {
                     return i;
@@ -63,7 +151,7 @@ var Fifteen = (function(window, document, unundefined) {
             }
         },
 
-        move: function (cell){
+        move: function (cell) {
             if ((cell < cells.length) && (cell >= 0)) {
                 if (zero != cell) {
                     if (Math.abs(zero - cell) == 1 || Math.abs(zero - cell) == rowLength) {
@@ -101,4 +189,4 @@ var Fifteen = (function(window, document, unundefined) {
     }
 })(window, document);
 
-window.onload = Fifteen.init(4);
+window.onload = Fifteen.init(3);
