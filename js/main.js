@@ -106,10 +106,7 @@ var Fifteen = (function(window, document, unundefined) {
                 if (parentNode.pos == goal) {
                     closeSet.push(new Node(parentNode.pos + 1, 0, goal, closeSet[closeSet.length-1].pos));
                     constructPath(goal);
-                    for (var j = pathMap.length - 1; j >= 0; j--) {
-                        this.move(pathMap[j].pos);
-                    }
-                    return true;
+                    return pathMap;
                 }
 
                 closeSet.push(parentNode);
@@ -201,6 +198,10 @@ var Fifteen = (function(window, document, unundefined) {
                 }
                 return index;
             }
+        },
+
+        getSolutionForZero: function(goal) {
+            return this.getSolutionForOneStep(this.getZeroPosition(), goal);
         },
 
         render: function () {
