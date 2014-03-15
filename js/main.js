@@ -82,13 +82,10 @@ var Fifteen = (function(window, document, unundefined) {
             return false;
         },
 
-        getSolutionForOneStep: function(start, goal) {
-            if (arguments['start'] == null) {
-                arguments['start'] = this.getZeroPosition();
-            }
+        getSolutionForOneStep: function(start, goal, closeNodes) {
 
             var openSet = [],
-                closeSet = [],//TODO: формируем заблоченые ноды сразу
+                closeSet = [],
                 pathMap = [],
                 parentNode,
                 parentNodeIndex,
@@ -97,25 +94,32 @@ var Fifteen = (function(window, document, unundefined) {
                 tentative,
                 tentativeGScore;
 
-            openSet.push(new Node(0, cost(start, goal), start, null));
+            if (closeNodes) {
+                for (var i = 0; i < closeNodes.length; i++) {
+                    closeSet.push(new Node(Infinity, Infinity, closeNodes[i], null));
+                }
+            }
 
+            openSet.push(new Node(0, cost(start, goal), start, null));
+            
             while (openSet.length != 0) {
                 parentNodeIndex = getMinCost(openSet);
                 parentNode = openSet[parentNodeIndex];
 
                 if (parentNode.pos == goal) {
                     closeSet.push(new Node(parentNode.pos + 1, 0, goal, closeSet[closeSet.length-1].pos));
+                    //console.log(closeSet);
                     constructPath(goal);
                     return pathMap;
                 }
 
                 closeSet.push(parentNode);
                 openSet.splice(parentNodeIndex,1);
-
                 neighborNods = neighborNodes(parentNode);
 
                 for (var i = 0; i < neighborNods.length; i++) {
                     if (nodeByPos(closeSet,neighborNods[i])) {
+                        console.log(neighborNods[i])
                         continue;
                     }
 
@@ -134,6 +138,7 @@ var Fifteen = (function(window, document, unundefined) {
                             tentativeIsBetter = false;
                         }
                     }
+                    //console.log(openSet);
                 }
 
                 if (tentativeIsBetter == true) {
@@ -143,7 +148,7 @@ var Fifteen = (function(window, document, unundefined) {
                     openSet[tentative].f = tentativeGScore + cost(tentativeGScore ,goal);
                 }
             }
-
+            
             function Node(g, h, pos, parent) {
                 return {
                     cameFrom: parent,
@@ -176,7 +181,7 @@ var Fifteen = (function(window, document, unundefined) {
                 if (node.pos - rowLength >= 0) nodes.push(node.pos - rowLength);
                 if ((node.pos + 1 <= cells.length - 1) && ((node.pos + 1) % rowLength) != 0) nodes.push(node.pos + 1);
                 if ((node.pos - 1 >= 0) && ((node.pos % rowLength) != 0)) nodes.push(node.pos - 1);
-
+                console.log(nodes)
                 return nodes;
             }
 
@@ -191,7 +196,7 @@ var Fifteen = (function(window, document, unundefined) {
                     index = null;
 
                 for (var i = 0; i < nodes.length; i++) {
-                    if (nodes[i].f < min) {
+                    if (nodes[i].f <= min) {
                         min = nodes[i].f
                         index = i;
                     }
@@ -200,8 +205,44 @@ var Fifteen = (function(window, document, unundefined) {
             }
         },
 
-        getSolutionForZero: function(goal) {
-            return this.getSolutionForOneStep(this.getZeroPosition(), goal);
+        getSolutionForZero: function(goal, closeNodes) {
+            return this.getSolutionForOneStep(this.getZeroPosition(), goal, closeNodes);
+        },
+
+        getSolution: function() {
+            
+            //for (var i = path.length-1; i >= 0 ;i--) {
+            //    this.move(path[i].pos);
+            //}
+
+            //while (!this.isCompleted()) {
+                var goal = getNextGoal();
+                var pathForNum = this.getSolutionForOneStep(getNodeByNum(goal + 1) ,goal);
+
+                for (var i = pathForNum.length-1; i >= 0; i--) {
+                    var pathForZero = this.getSolutionForZero(pathForNum[i].pos, {pos: pathForNum[i].cameFrom});
+                    for (var j = pathForZero.length-1; j >= 0; j--) {
+                        //console.log(pathForZero[j])
+                        //this.move(pathForZero[j].pos);
+                    }
+                    break;
+                    //this.move(pathForNum[i].cameFrom);
+                    //console.log(pathForNum[i].pos);
+                }   
+                //return pathForNum;
+            //}
+
+            function getNextGoal() {
+                for (var i = 0; i < cells.length; i++) {
+                    if (cells[i] != i) return i; 
+                }
+            }
+
+            function getNodeByNum(num) {
+                for (var i = 0; i < cells.length; i++) {
+                    if (cells[i] == num) return i;
+                }
+            } 
         },
 
         render: function () {
