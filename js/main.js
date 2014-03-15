@@ -32,102 +32,14 @@ var Fifteen = (function(window, document, unundefined) {
             return o;
         },
 
-        isCompleted: function() {
+        isCompleted: function(){
             for(var i = 0; i < cells.length - 1; i++) {
-                if (cells[i] != i + 1 ) return false;
+                if (cells[i] != i+1 ) return false;
             }
             return true;
         },
 
-                
-        getOneStepSolution: function(start, goal) {
-            var closedSet = [],
-                openSet = [new Point(start, 0, cost(start, goal), null)],
-                pathMap = [];
-            
-            while (openSet.length != 0) {
-                var index =  getMinCost(openSet);
-                var parentPoint = openSet[index];
-                var tentativeIsBetter; 
-                closedSet.push(parentPoint);
-                openSet.splice([index], 1);
-                var points = neighborPoints(parentPoint);
-                for (var i = 0; i < points.length; i++) {
-                    if (pointByPos(closedSet, points[i])) continue;
-                        var tentativeGScore = parentPoint.g + 1;
-                    if (!pointByPos(openSet, points[i])) {
-                        //console.log(new Point(points[i], parentPoint.g + 1, cost(points[i] ,goal), parentPoint.pos))
-                        openSet.push(new Point(points[i], parentPoint.g + 1, cost(points[i] ,goal), parentPoint.pos)); 
-                        tentativeIsBetter = true;
-                    } else {
-                       if (tentativeGScore < openSet(index).g) {
-                            tentativeIsBetter = true;
-                       } else {
-                           tentativeIsBetter = false;
-                       }
-                    }
-                 }
-             }
-
-
-            //if (tentativeIsBetter) {
-            //    var index = pointByPos(openSet, points[i]);
-            //    openSet[index].g = parentPoint.pos + 1;
-            //    openSet[index].h = cost(point[i], goal);
-            //    openSet[index].f = openSet[index].g + openSet[index].h;
-            //}
-            //console.log(openSet);
-            
-           
-            
-            function pointByPos(points, pos) {
-                for(var i = 0; i < points.length; i++) {
-                    if(points[i].pos == pos) return i;
-                }
-                return false;
-            }
-            
-            function neighborPoints(point) {
-                var points = [];
-                if (point.pos + rowLength <= cells.length - 1) points.push(point.pos + rowLength);
-                if (point.pos + 1 <= cells.length - 1) points.push(point.pos + 1);
-                if (point.pos - rowLength >= 0) points.push(point.pos - rowLength);
-                if (point.pos - 1 >= 0) points.push(point.pos - 1);
-                return points;
-            }
-
-            function getMinCost(points) {
-                var tmp = [],
-                    min = Infinity,
-                    index = null;
-
-                for (var i = 0; i < points.length; i++) {
-                    if (points[i].f < min) {
-                        min = points[i].f   
-                        index = i;
-                    }
-                }
-                return index;
-            }
-
-            function Point(pos ,g, h, cameFrom){
-                return {
-                    cameForm: cameFrom,
-                    pos: pos,
-                    g: g,
-                    h: h,
-                    f: g + h
-                }
-            }
-
-            function cost(start, goal) {
-                var cost = 0;
-                cost = Math.abs(start - goal);
-                return cost;
-            }
-        },
-
-        haveSolution: function() {
+        haveSolution: function(){
             var disorder = 0;
             for(var i = 0; i < cells.length-1; i++) {
                 for (var j = i - 1; j >= 0; j--) {
@@ -143,26 +55,151 @@ var Fifteen = (function(window, document, unundefined) {
             cells[cellB] = t;
         },
 
-        getZeroPosition: function () {
+        getZeroPosition: function (){
             for(var i = 0; i < cells.length; i++  ) {
                 if (cells[i] == 0) {
                     return i;
                 }
             }
+            return false;
         },
 
-        move: function (cell) {
+        move: function (cell){
             if ((cell < cells.length) && (cell >= 0)) {
                 if (zero != cell) {
                     if (Math.abs(zero - cell) == 1 || Math.abs(zero - cell) == rowLength) {
-                        this.swap(cell, zero);
-                        zero = this.getZeroPosition();
-                        this.render();
-                        stepCount++;
-                        if(this.isCompleted()) alert('You are win! Step Count: ' + stepCount);
-                        return true
+                        if (!(((zero % rowLength == 0) && (cell == zero - 1)) || ((cell % rowLength == 0) && (zero == cell - 1)))) {
+                            this.swap(cell, zero);
+                            zero = this.getZeroPosition();
+                            this.render();
+                            stepCount++;
+                            if(this.isCompleted()) alert('You are win! Step Count: ' + stepCount);
+                            return true;
+                        }
                     }
                 }
+            }
+            return false;
+        },
+
+        getSolutionForOneStep: function(start, goal) {
+            if (arguments['start'] == null) {
+                arguments['start'] = this.getZeroPosition();
+            }
+
+            var openSet = [],
+                closeSet = [],//TODO: формируем заблоченые ноды сразу
+                pathMap = [],
+                parentNode,
+                parentNodeIndex,
+                neighborNods,
+                tentativeIsBetter,
+                tentative,
+                tentativeGScore;
+
+            openSet.push(new Node(0, cost(start, goal), start, null));
+
+            while (openSet.length != 0) {
+                parentNodeIndex = getMinCost(openSet);
+                parentNode = openSet[parentNodeIndex];
+
+                if (parentNode.pos == goal) {
+                    closeSet.push(new Node(parentNode.pos + 1, 0, goal, closeSet[closeSet.length-1].pos));
+                    constructPath(goal);
+                    for (var j = pathMap.length - 1; j >= 0; j--) {
+                        this.move(pathMap[j].pos);
+                    }
+                    return true;
+                }
+
+                closeSet.push(parentNode);
+                openSet.splice(parentNodeIndex,1);
+
+                neighborNods = neighborNodes(parentNode);
+
+                for (var i = 0; i < neighborNods.length; i++) {
+                    if (nodeByPos(closeSet,neighborNods[i])) {
+                        continue;
+                    }
+
+                    tentativeGScore = parentNode.pos + 1;
+                    tentative = nodeByPos(openSet, neighborNods[i]);
+                    if (!tentative) {
+                        openSet.push(new Node(tentativeGScore, cost(neighborNods[i], goal), neighborNods[i], parentNode.pos));
+                        tentative = openSet.length - 1;
+                        tentativeIsBetter = true;
+                    }
+                    else {
+                        if (tentativeGScore < cost(neighborNods[i], goal)) {
+                            tentativeIsBetter = true;
+                        }
+                        else {
+                            tentativeIsBetter = false;
+                        }
+                    }
+                }
+
+                if (tentativeIsBetter == true) {
+                    openSet[tentative].cameFrom = parentNode.pos;
+                    openSet[tentative].g = tentativeGScore;
+                    openSet[tentative].h = cost(tentativeGScore ,goal);
+                    openSet[tentative].f = tentativeGScore + cost(tentativeGScore ,goal);
+                }
+            }
+
+            function Node(g, h, pos, parent) {
+                return {
+                    cameFrom: parent,
+                    pos: pos,
+                    g: g,
+                    h: h,
+                    f: g + h
+                }
+            }
+
+            function constructPath(goal) {
+                var currentNode = closeSet[nodeByPos(closeSet ,goal)];
+                while (currentNode.cameFrom != null) {
+                    pathMap.push(currentNode);
+                    currentNode = closeSet[nodeByPos(closeSet, currentNode.cameFrom)];
+                }
+            }
+
+            function nodeByPos(nodes, pos) {
+                for(var i = 0; i < nodes.length; i++) {
+                    if(nodes[i].pos == pos) return i;
+                }
+                return false;
+            }
+
+            function neighborNodes(node) {
+                var nodes = [];
+
+                if (node.pos + rowLength <= cells.length - 1) nodes.push(node.pos + rowLength);
+                if (node.pos - rowLength >= 0) nodes.push(node.pos - rowLength);
+                if ((node.pos + 1 <= cells.length - 1) && ((node.pos + 1) % rowLength) != 0) nodes.push(node.pos + 1);
+                if ((node.pos - 1 >= 0) && ((node.pos % rowLength) != 0)) nodes.push(node.pos - 1);
+
+                return nodes;
+            }
+
+            function cost(start, goal) {
+                var cost = 0;
+                cost = Math.abs(start - goal);
+                return cost;
+            }
+
+            function getMinCost(nodes) {
+                var min = Infinity,
+                    index = null;
+
+                for (var i = 0; i < nodes.length; i++) {
+                    if (nodes[i].f < min) {
+                        min = nodes[i].f
+                        index = i;
+                    }
+                }
+                return index;
             }
         },
 
@@ -189,4 +226,4 @@ var Fifteen = (function(window, document, unundefined) {
     }
 })(window, document);
 
-window.onload = Fifteen.init(3);
+window.onload = Fifteen.init(4);
